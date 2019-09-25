@@ -1,6 +1,7 @@
 #include "main.h"
 #include "driverlib/driverlib.h"
 #include "hal_LCD.h"
+#include <stdio.h>
 
 int main(void) {
     //Turn off interrupts during initialization
@@ -25,33 +26,9 @@ int main(void) {
 
     Setup_Mode(&threshold_GY, &threshold_YO, &threshold_OR, &threshold_DB, &threshold_QB);
 
-    // displayScrollText("DOUBLE BEEP");
-
-    // Buzzer(2);
-
-    // displayScrollText("QUAD BEEP");
-
-    // Buzzer(4);
+    User_Mode(&threshold_GY, &threshold_YO, &threshold_OR, &threshold_DB, &threshold_QB);
 
     return (0);
-}
-
-/* ASSUMPTION: MSG IS 6 CHARACTERS LONG */
-void Display_Text(char *msg)
-{
-    clearLCD();
-    if (msg[0] != ' ')
-        showChar(msg[0], pos1);
-    if (msg[1] != ' ')
-        showChar(msg[1], pos2);
-    if (msg[2] != ' ')
-        showChar(msg[2], pos3);
-    if (msg[3] != ' ')
-        showChar(msg[3], pos4);
-    if (msg[4] != ' ')
-        showChar(msg[4], pos5);
-    if (msg[5] != ' ')
-        showChar(msg[5], pos6);
 }
 
 void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned int *threshold_OR, unsigned int *threshold_DB, unsigned int *threshold_QB)
@@ -64,10 +41,12 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
 
     char buttonState1 = 0; //Current button press state (to allow edge detection)
     char buttonState2 = 0; //Current button press state (to allow edge detection)
+    unsigned int capture = 0;
 
     int setup = 5;
     while (setup > 0)
     {
+        Get_Sensor_Data(&capture);
         //Buttons SW1 and SW2 are active low (1 until pressed, then 0)
         if ((GPIO_getInputPinValue(SW1_PORT, SW1_PIN) == 1) & (buttonState1 == 0)) //Look for rising edge
         {
@@ -78,33 +57,43 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
             switch(setup)
             {
                 case 5:
-                    *threshold_GY = 0; //arbitrary number - set to read sensor value
+                    *threshold_GY = capture; //arbitrary number - set to read sensor value
                     Display_Text("GY SET");
-                    __delay_cycles(1600000);
+                    __delay_cycles(800000);
+                    Display_Text(Convert_To_String(*threshold_GY));
+                    __delay_cycles(800000);
                     clearLCD();
                     break;
                 case 4:
-                    *threshold_YO = 0; //arbitrary number - set to read sensor value
+                    *threshold_YO = capture; //arbitrary number - set to read sensor value
                     Display_Text("YO SET");
-                    __delay_cycles(1600000);
+                    __delay_cycles(800000);
+                    Display_Text(Convert_To_String(*threshold_YO));
+                    __delay_cycles(800000);
                     clearLCD();
                     break;
                 case 3:
-                    *threshold_OR = 0; //arbitrary number - set to read sensor value
+                    *threshold_OR = capture; //arbitrary number - set to read sensor value
                     Display_Text("OR SET");
-                    __delay_cycles(1600000);
+                    __delay_cycles(800000);
+                    Display_Text(Convert_To_String(*threshold_OR));
+                    __delay_cycles(800000);
                     clearLCD();
                     break;
                 case 2:
-                    *threshold_DB = 0; //arbitrary number - set to read sensor value
+                    *threshold_DB = capture; //arbitrary number - set to read sensor value
                     Display_Text("DB SET");
-                    __delay_cycles(1600000);
+                    __delay_cycles(800000);
+                    Display_Text(Convert_To_String(*threshold_DB));
+                    __delay_cycles(800000);
                     clearLCD();
                     break;
                 case 1:
-                    *threshold_QB = 0; //arbitrary number - set to read sensor value
+                    *threshold_QB = capture; //arbitrary number - set to read sensor value
                     Display_Text("QB SET");
-                    __delay_cycles(1600000);
+                    __delay_cycles(800000);
+                    Display_Text(Convert_To_String(*threshold_QB));
+                    __delay_cycles(800000);
                     clearLCD();
                     break;
                 default:
@@ -126,7 +115,7 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
                     Display_Text("GY    ");
                     GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN3);
                     GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN3);
-                    __delay_cycles(1600000);
+                    __delay_cycles(800000);
                     GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN3);
                     GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
                     clearLCD();
@@ -135,7 +124,7 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
                     Display_Text("YO    ");
                     GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN3);
                     GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN4);
-                    __delay_cycles(1600000);
+                    __delay_cycles(800000);
                     GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
                     GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
                     clearLCD();
@@ -144,7 +133,7 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
                     Display_Text("OR    ");
                     GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN4);
                     GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN5);
-                    __delay_cycles(1600000);
+                    __delay_cycles(800000);
                     GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
                     GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN5);
                     clearLCD();
@@ -152,13 +141,13 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
                 case 2:
                     Display_Text("DB    ");
                     Buzzer(2);
-                    __delay_cycles(1600000);
+                    __delay_cycles(800000);
                     clearLCD();
                     break;
                 case 1:
                     Display_Text("QB    ");
                     Buzzer(4);
-                    __delay_cycles(1600000);
+                    __delay_cycles(800000);
                     clearLCD();
                     break;
                 default:
@@ -167,6 +156,78 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
             buttonState2 = 0;                            //Capture new button state
         }
     }
+}
+
+void User_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned int *threshold_OR, unsigned int *threshold_DB, unsigned int *threshold_QB)
+{
+    unsigned int capture = 0;
+    // Enable User Mode until board is reset
+    while (1)
+    {
+        Get_Sensor_Data(&capture);
+        if (capture > threshold_GY)
+        {
+            GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN3);
+            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
+            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
+            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN5);
+        }
+        else if ((capture < threshold_GY) && (capture > threshold_YO))
+        {
+            GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN3);
+            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN3);
+            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
+            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN5);
+        }
+        else if ((capture < threshold_YO) && (capture > threshold_OR))
+        {
+            GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN3);
+            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
+            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN4);
+            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN5);
+        }
+        else if ((capture < threshold_OR))
+        {
+            GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN3);
+            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
+            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
+            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN5);
+        }
+
+        if ((capture < threshold_DB) && (capture > threshold_QB))
+        {
+            Buzzer(2);
+        }
+        else if (capture < threshold_QB)
+        {
+            Buzzer(4);
+        }
+    }
+}
+
+/* ASSUMPTION: MSG IS 6 CHARACTERS LONG */
+void Display_Text(char *msg)
+{
+    clearLCD();
+    if (msg[0] != ' ')
+        showChar(msg[0], pos1);
+    if (msg[1] != ' ')
+        showChar(msg[1], pos2);
+    if (msg[2] != ' ')
+        showChar(msg[2], pos3);
+    if (msg[3] != ' ')
+        showChar(msg[3], pos4);
+    if (msg[4] != ' ')
+        showChar(msg[4], pos5);
+    if (msg[5] != ' ')
+        showChar(msg[5], pos6);
+}
+
+void Get_Sensor_Data(unsigned int *capture)
+{
+    // Insert Code Here
+
+    *capture = 1;
 }
 
 void Buzzer(int beeps)
@@ -184,6 +245,14 @@ void Buzzer(int beeps)
         }
         __delay_cycles(150000);
     }
+}
+
+char* Convert_To_String(unsigned int src)
+{
+    char buffer[6];
+    memset(&buffer, 0, sizeof(buffer)); // zero out the buffer
+    sprintf(buffer, "%d", src);
+    return buffer;
 }
 
 void Init_GPIO(void)

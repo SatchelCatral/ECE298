@@ -43,6 +43,10 @@ main.obj: ../driverlib/timer_b.h
 main.obj: ../driverlib/eusci_b_spi.h
 main.obj: ../driverlib/driverlib.h
 main.obj: ../hal_LCD.h
+main.obj: C:/ti/ccsv8/tools/compiler/ti-cgt-msp430_18.1.4.LTS/include/stdio.h
+main.obj: C:/ti/ccsv8/tools/compiler/ti-cgt-msp430_18.1.4.LTS/include/_ti_config.h
+main.obj: C:/ti/ccsv8/tools/compiler/ti-cgt-msp430_18.1.4.LTS/include/linkage.h
+main.obj: C:/ti/ccsv8/tools/compiler/ti-cgt-msp430_18.1.4.LTS/include/stdarg.h
 
 ../main.c: 
 ../main.h: 
@@ -87,3 +91,7 @@ C:/ti/ccsv8/tools/compiler/ti-cgt-msp430_18.1.4.LTS/include/stdbool.h:
 ../driverlib/eusci_b_spi.h: 
 ../driverlib/driverlib.h: 
 ../hal_LCD.h: 
+C:/ti/ccsv8/tools/compiler/ti-cgt-msp430_18.1.4.LTS/include/stdio.h: 
+C:/ti/ccsv8/tools/compiler/ti-cgt-msp430_18.1.4.LTS/include/_ti_config.h: 
+C:/ti/ccsv8/tools/compiler/ti-cgt-msp430_18.1.4.LTS/include/linkage.h: 
+C:/ti/ccsv8/tools/compiler/ti-cgt-msp430_18.1.4.LTS/include/stdarg.h: 
