@@ -165,28 +165,28 @@ void User_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned 
     while (1)
     {
         Get_Sensor_Data(&capture);
-        if (capture > threshold_GY)
+        if (capture > *threshold_GY)
         {
             GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN3);
             GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
             GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
             GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN5);
         }
-        else if ((capture < threshold_GY) && (capture > threshold_YO))
+        else if ((capture < *threshold_GY) && (capture > *threshold_YO))
         {
             GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN3);
             GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN3);
             GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
             GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN5);
         }
-        else if ((capture < threshold_YO) && (capture > threshold_OR))
+        else if ((capture < *threshold_YO) && (capture > *threshold_OR))
         {
             GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN3);
             GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
             GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN4);
             GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN5);
         }
-        else if ((capture < threshold_OR))
+        else if ((capture < *threshold_OR))
         {
             GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN3);
             GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
@@ -194,11 +194,11 @@ void User_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned 
             GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN5);
         }
 
-        if ((capture < threshold_DB) && (capture > threshold_QB))
+        if ((capture < *threshold_DB) && (capture > *threshold_QB))
         {
             Buzzer(2);
         }
-        else if (capture < threshold_QB)
+        else if (capture < *threshold_QB)
         {
             Buzzer(4);
         }
@@ -226,10 +226,36 @@ void Display_Text(char *msg)
 void Get_Sensor_Data(unsigned int *capture)
 {
     // Insert Code Here
+    unsigned int tmp = GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN7);
+    unsigned int time = 0;
 
-    *capture = 1;
+    if (tmp == 1)
+    {
+        //Start timer in continuous mode sourced by SMCLK
+        Timer_A_initContinuousModeParam initContParam = {0};
+        initContParam.clockSource = TIMER_A_CLOCKSOURCE_SMCLK;
+        initContParam.clockSourceDivider = TIMER_A_CLOCKSOURCE_DIVIDER_1;
+        initContParam.timerInterruptEnable_TAIE = TIMER_A_TAIE_INTERRUPT_DISABLE;
+        initContParam.timerClear = TIMER_A_DO_CLEAR;
+        initContParam.startTimer = true;
+        Timer_A_initContinuousMode(TIMER_A1_BASE, &initContParam);
+
+        Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_CONTINUOUS_MODE);
+        while(tmp != 0)
+        {
+            tmp = GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN7);
+        }
+        Timer_A_stop(TIMER_A1_BASE);
+        time = Timer_A_getCounterValue(TIMER_A1_BASE);
+
+        Display_Text(Convert_To_String(time));
+        //__delay_cycles(20000);
+    }
+
+    *capture = time;
 }
 
+// USE PWM IN THE FUTURE
 void Buzzer(int beeps)
 {
     int i;
@@ -267,7 +293,9 @@ void Init_GPIO(void)
     GPIO_setOutputLowOnPin(GPIO_PORT_P7, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
     GPIO_setOutputLowOnPin(GPIO_PORT_P8, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
 
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
+    GPIO_setAsInputPin(GPIO_PORT_P1, GPIO_PIN7);
+
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6);
     GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
     GPIO_setAsOutputPin(GPIO_PORT_P3, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
     GPIO_setAsOutputPin(GPIO_PORT_P4, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
