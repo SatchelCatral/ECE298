@@ -235,7 +235,17 @@ void Get_Sensor_Data(unsigned int *capture, char *dest)
     // Insert Code Here
     unsigned int tmp = GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN7);
     unsigned int time = 0;
-    int blip = 20000;
+    int trigTime = 160; //10 Microsecond delay
+    int blip = 15;
+
+    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN5);
+    __delay_cycles(10);
+    GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN5);
+    __delay_cycles(20);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN5);
+//    test out if trigger works
+
+
 
     if (tmp == 1)
     {
@@ -250,11 +260,11 @@ void Get_Sensor_Data(unsigned int *capture, char *dest)
 
         Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_CONTINUOUS_MODE);
 
-        while(tmp != 0)// && blip > 0)
+        while(tmp != 0) //&& blip > 0)
         {
             tmp = GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN7);
-            //if (tmp == 0)
-            //    blip--;
+//            if (tmp == 0)
+//                blip--;
         }
         Timer_A_stop(TIMER_A1_BASE);
         time = Timer_A_getCounterValue(TIMER_A1_BASE);
