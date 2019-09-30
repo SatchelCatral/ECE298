@@ -22,16 +22,18 @@ int main(void) {
     unsigned int threshold_DB;
     unsigned int threshold_QB;
 
+    char *textDisplay = malloc(sizeof(char));
+
     __enable_interrupt();
 
-    Setup_Mode(&threshold_GY, &threshold_YO, &threshold_OR, &threshold_DB, &threshold_QB);
+    Setup_Mode(&threshold_GY, &threshold_YO, &threshold_OR, &threshold_DB, &threshold_QB, textDisplay);
 
-    User_Mode(&threshold_GY, &threshold_YO, &threshold_OR, &threshold_DB, &threshold_QB);
+    User_Mode(&threshold_GY, &threshold_YO, &threshold_OR, &threshold_DB, &threshold_QB, textDisplay);
 
     return (0);
 }
 
-void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned int *threshold_OR, unsigned int *threshold_DB, unsigned int *threshold_QB)
+void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned int *threshold_OR, unsigned int *threshold_DB, unsigned int *threshold_QB, char *textDisplay)
 {
     Display_Text("SETUP");
     __delay_cycles(800000);
@@ -46,7 +48,7 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
     int setup = 5;
     while (setup > 0)
     {
-        Get_Sensor_Data(&capture);
+        Get_Sensor_Data(&capture, textDisplay);
         //Buttons SW1 and SW2 are active low (1 until pressed, then 0)
         if ((GPIO_getInputPinValue(SW1_PORT, SW1_PIN) == 1) & (buttonState1 == 0)) //Look for rising edge
         {
@@ -60,7 +62,8 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
                     *threshold_GY = capture; //arbitrary number - set to read sensor value
                     Display_Text("GY SET");
                     __delay_cycles(800000);
-                    Display_Text(Convert_To_String(*threshold_GY));
+                    Convert_To_String(*threshold_GY, textDisplay);
+                    Display_Text(textDisplay);
                     __delay_cycles(800000);
                     clearLCD();
                     break;
@@ -68,7 +71,8 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
                     *threshold_YO = capture; //arbitrary number - set to read sensor value
                     Display_Text("YO SET");
                     __delay_cycles(800000);
-                    Display_Text(Convert_To_String(*threshold_YO));
+                    Convert_To_String(*threshold_YO, textDisplay);
+                    Display_Text(textDisplay);
                     __delay_cycles(800000);
                     clearLCD();
                     break;
@@ -76,7 +80,8 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
                     *threshold_OR = capture; //arbitrary number - set to read sensor value
                     Display_Text("OR SET");
                     __delay_cycles(800000);
-                    Display_Text(Convert_To_String(*threshold_OR));
+                    Convert_To_String(*threshold_OR, textDisplay);
+                    Display_Text(textDisplay);
                     __delay_cycles(800000);
                     clearLCD();
                     break;
@@ -84,7 +89,8 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
                     *threshold_DB = capture; //arbitrary number - set to read sensor value
                     Display_Text("DB SET");
                     __delay_cycles(800000);
-                    Display_Text(Convert_To_String(*threshold_DB));
+                    Convert_To_String(*threshold_DB, textDisplay);
+                    Display_Text(textDisplay);
                     __delay_cycles(800000);
                     clearLCD();
                     break;
@@ -92,7 +98,8 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
                     *threshold_QB = capture; //arbitrary number - set to read sensor value
                     Display_Text("QB SET");
                     __delay_cycles(800000);
-                    Display_Text(Convert_To_String(*threshold_QB));
+                    Convert_To_String(*threshold_QB, textDisplay);
+                    Display_Text(textDisplay);
                     __delay_cycles(800000);
                     clearLCD();
                     break;
@@ -158,13 +165,13 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
     }
 }
 
-void User_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned int *threshold_OR, unsigned int *threshold_DB, unsigned int *threshold_QB)
+void User_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned int *threshold_OR, unsigned int *threshold_DB, unsigned int *threshold_QB, char *textDisplay)
 {
     unsigned int capture = 0;
     // Enable User Mode until board is reset
     while (1)
     {
-        Get_Sensor_Data(&capture);
+        Get_Sensor_Data(&capture, textDisplay);
         if (capture > *threshold_GY)
         {
             GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN3);
@@ -223,11 +230,12 @@ void Display_Text(char *msg)
         showChar(msg[5], pos6);
 }
 
-void Get_Sensor_Data(unsigned int *capture)
+void Get_Sensor_Data(unsigned int *capture, char *dest)
 {
     // Insert Code Here
     unsigned int tmp = GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN7);
     unsigned int time = 0;
+    int blip = 20000;
 
     if (tmp == 1)
     {
@@ -237,19 +245,24 @@ void Get_Sensor_Data(unsigned int *capture)
         initContParam.clockSourceDivider = TIMER_A_CLOCKSOURCE_DIVIDER_1;
         initContParam.timerInterruptEnable_TAIE = TIMER_A_TAIE_INTERRUPT_DISABLE;
         initContParam.timerClear = TIMER_A_DO_CLEAR;
-        initContParam.startTimer = true;
+        initContParam.startTimer = false;
         Timer_A_initContinuousMode(TIMER_A1_BASE, &initContParam);
 
         Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_CONTINUOUS_MODE);
-        while(tmp != 0)
+
+        while(tmp != 0)// && blip > 0)
         {
             tmp = GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN7);
+            //if (tmp == 0)
+            //    blip--;
         }
         Timer_A_stop(TIMER_A1_BASE);
         time = Timer_A_getCounterValue(TIMER_A1_BASE);
 
-        Display_Text(Convert_To_String(time));
-        //__delay_cycles(20000);
+        Convert_To_String(time, dest);
+
+        Display_Text(dest);
+        __delay_cycles(500000);
     }
 
     *capture = time;
@@ -273,12 +286,9 @@ void Buzzer(int beeps)
     }
 }
 
-char* Convert_To_String(unsigned int src)
+void Convert_To_String(unsigned int src, char *dest)
 {
-    char buffer[6];
-    memset(&buffer, 0, sizeof(buffer)); // zero out the buffer
-    sprintf(buffer, "%d", src);
-    return buffer;
+    sprintf(dest, "%d", src);
 }
 
 void Init_GPIO(void)

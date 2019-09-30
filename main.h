@@ -30,13 +30,13 @@ void Init_GPIO(void);
 void Init_Clock(void);
 
 // Helper Functions
-void Setup_Mode(unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int *);
-void User_Mode(unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int *);
+void Setup_Mode(unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int *, char *);
+void User_Mode(unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int *, char *);
 
 void Display_Text(char *);
-void Get_Sensor_Data(unsigned int *);
+void Get_Sensor_Data(unsigned int *, char *);
 void Buzzer(int);
-char* Convert_To_String(unsigned int);
+void Convert_To_String(unsigned int, char *);
 
 Timer_A_outputPWMParam param; //Timer configuration data structure for PWM
 
