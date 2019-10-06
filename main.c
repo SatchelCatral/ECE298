@@ -48,7 +48,7 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
     int setup = 5;
     while (setup > 0)
     {
-        Get_Sensor_Data(&capture, textDisplay);
+        Get_Sensor_Data(&capture, textDisplay, setup > 2 ? FRONT_SENSOR : BACK_SENSOR);
         //Buttons SW1 and SW2 are active low (1 until pressed, then 0)
         if ((GPIO_getInputPinValue(SW1_PORT, SW1_PIN) == 1) & (buttonState1 == 0)) //Look for rising edge
         {
@@ -171,43 +171,52 @@ void User_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned 
     // Enable User Mode until board is reset
     while (1)
     {
-        Get_Sensor_Data(&capture, textDisplay);
-        if (capture > *threshold_GY)
+        Get_Sensor_Data(&capture, textDisplay, FRONT_SENSOR);
+        if (capture != 0)
         {
-            GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN3);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN5);
-        }
-        else if ((capture < *threshold_GY) && (capture > *threshold_YO))
-        {
-            GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN3);
-            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN3);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN5);
-        }
-        else if ((capture < *threshold_YO) && (capture > *threshold_OR))
-        {
-            GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN3);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
-            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN4);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN5);
-        }
-        else if ((capture < *threshold_OR))
-        {
-            GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN3);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
-            GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
-            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN5);
+            if (capture > *threshold_GY)
+            {
+                GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN3);
+                GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
+                GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
+                GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN5);
+            }
+            else if ((capture < *threshold_GY) && (capture > *threshold_YO))
+            {
+                GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN3);
+                GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN3);
+                GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
+                GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN5);
+            }
+            else if ((capture < *threshold_YO) && (capture > *threshold_OR))
+            {
+                GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN3);
+                GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
+                GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN4);
+                GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN5);
+            }
+            else if ((capture < *threshold_OR))
+            {
+                GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN3);
+                GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN3);
+                GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN4);
+                GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN5);
+            }
         }
 
-        if ((capture < *threshold_DB) && (capture > *threshold_QB))
+        __delay_cycles(100);
+
+        Get_Sensor_Data(&capture, textDisplay, BACK_SENSOR);
+        if (capture != 0)
         {
-            Buzzer(2);
-        }
-        else if (capture < *threshold_QB)
-        {
-            Buzzer(4);
+            if ((capture < *threshold_DB) && (capture > *threshold_QB))
+            {
+                Buzzer(2);
+            }
+            else if (capture < *threshold_QB)
+            {
+                Buzzer(4);
+            }
         }
     }
 }
@@ -230,13 +239,11 @@ void Display_Text(char *msg)
         showChar(msg[5], pos6);
 }
 
-void Get_Sensor_Data(unsigned int *capture, char *dest)
+void Get_Sensor_Data(unsigned int *capture, char *dest, int sensor)
 {
     // Insert Code Here
-    unsigned int tmp = GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN7);
+    unsigned int tmp = GPIO_getInputPinValue(sensor == FRONT_SENSOR ? GPIO_PORT_P1 : GPIO_PORT_P2, GPIO_PIN7);
     unsigned int time = 0;
-    int trigTime = 160; //10 Microsecond delay
-    int blip = 15;
 
     GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN5);
     __delay_cycles(10);
@@ -244,8 +251,6 @@ void Get_Sensor_Data(unsigned int *capture, char *dest)
     __delay_cycles(20);
     GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN5);
 //    test out if trigger works
-
-
 
     if (tmp == 1)
     {
@@ -260,11 +265,9 @@ void Get_Sensor_Data(unsigned int *capture, char *dest)
 
         Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_CONTINUOUS_MODE);
 
-        while(tmp != 0) //&& blip > 0)
+        while(tmp != 0)
         {
-            tmp = GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN7);
-//            if (tmp == 0)
-//                blip--;
+            tmp = GPIO_getInputPinValue(sensor == FRONT_SENSOR ? GPIO_PORT_P1 : GPIO_PORT_P2, GPIO_PIN7);
         }
         Timer_A_stop(TIMER_A1_BASE);
         time = Timer_A_getCounterValue(TIMER_A1_BASE);
@@ -314,9 +317,10 @@ void Init_GPIO(void)
     GPIO_setOutputLowOnPin(GPIO_PORT_P8, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
 
     GPIO_setAsInputPin(GPIO_PORT_P1, GPIO_PIN7);
+    GPIO_setAsInputPin(GPIO_PORT_P2, GPIO_PIN7);
 
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6);
-    GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
+    GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6);
     GPIO_setAsOutputPin(GPIO_PORT_P3, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
     GPIO_setAsOutputPin(GPIO_PORT_P4, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
     GPIO_setAsOutputPin(GPIO_PORT_P5, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);

@@ -5,6 +5,8 @@
 
 #define TIMER_A_PERIOD  1000 //T = 1/f = (TIMER_A_PERIOD * 1 us)
 #define HIGH_COUNT      500  //Number of cycles signal is high (Duty Cycle = HIGH_COUNT / TIMER_A_PERIOD)
+#define FRONT_SENSOR    0
+#define BACK_SENSOR     1
 
 //Output pin to buzzer
 #define PWM_PORT        GPIO_PORT_P1
@@ -34,7 +36,7 @@ void Setup_Mode(unsigned int *, unsigned int *, unsigned int *, unsigned int *, 
 void User_Mode(unsigned int *, unsigned int *, unsigned int *, unsigned int *, unsigned int *, char *);
 
 void Display_Text(char *);
-void Get_Sensor_Data(unsigned int *, char *);
+void Get_Sensor_Data(unsigned int *, char *, int);
 void Buzzer(int);
 void Convert_To_String(unsigned int, char *);
 
