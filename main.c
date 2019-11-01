@@ -73,24 +73,38 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
                     clearLCD();
                     break;
                 case 4:
-                    *threshold_YO = capture;
-                    setup--;
-                    Display_Text("YO SET");
-                    __delay_cycles(800000);
-                    Convert_To_String(*threshold_YO, textDisplay);
-                    Display_Text(textDisplay);
-                    __delay_cycles(800000);
-                    clearLCD();
+                    if (capture < *threshold_GY)
+                    {
+                        *threshold_YO = capture;
+                        setup--;
+                        Display_Text("YO SET");
+                        __delay_cycles(800000);
+                        Convert_To_String(*threshold_YO, textDisplay);
+                        Display_Text(textDisplay);
+                        __delay_cycles(800000);
+                        clearLCD();
+                    }
+                    else
+                    {
+                        displayScrollText("INVALID");
+                    }
                     break;
                 case 3:
-                    *threshold_OR = capture;
-                    setup--;
-                    Display_Text("OR SET");
-                    __delay_cycles(800000);
-                    Convert_To_String(*threshold_OR, textDisplay);
-                    Display_Text(textDisplay);
-                    __delay_cycles(800000);
-                    clearLCD();
+                    if (capture < *threshold_YO)
+                    {
+                        *threshold_OR = capture;
+                        setup--;
+                        Display_Text("OR SET");
+                        __delay_cycles(800000);
+                        Convert_To_String(*threshold_OR, textDisplay);
+                        Display_Text(textDisplay);
+                        __delay_cycles(800000);
+                        clearLCD();
+                    }
+                    else
+                    {
+                        displayScrollText("INVALID");
+                    }
                     break;
                 case 2:
                     *threshold_DB = capture;
@@ -103,14 +117,21 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
                     clearLCD();
                     break;
                 case 1:
-                    *threshold_QB = capture;
-                    setup--;
-                    Display_Text("QB SET");
-                    __delay_cycles(800000);
-                    Convert_To_String(*threshold_QB, textDisplay);
-                    Display_Text(textDisplay);
-                    __delay_cycles(800000);
-                    clearLCD();
+                    if (capture < *threshold_DB)
+                    {
+                        *threshold_QB = capture;
+                        setup--;
+                        Display_Text("QB SET");
+                        __delay_cycles(800000);
+                        Convert_To_String(*threshold_QB, textDisplay);
+                        Display_Text(textDisplay);
+                        __delay_cycles(800000);
+                        clearLCD();
+                    }
+                    else
+                    {
+                        displayScrollText("INVALID");
+                    }
                     break;
                 default:
                     break;
