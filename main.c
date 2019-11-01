@@ -13,16 +13,16 @@ int main(void) {
     Init_Clock();   //Sets up the necessary system clocks
     Init_LCD();     //Sets up the LaunchPad LCD display
 
-    PMM_unlockLPM5(); //Disable the GPIO power-on default high-impedance mode to activate previously configured port settings
+    PMM_unlockLPM5();   //Disable the GPIO power-on default high-impedance mode to activate previously configured port settings
 
-    unsigned int threshold_GY;
-    unsigned int threshold_YO;
-    unsigned int threshold_OR;
+    unsigned int threshold_GY;  //Threshold value from Green to Yellow
+    unsigned int threshold_YO;  //Threshold value from Yellow to Orange
+    unsigned int threshold_OR;  //Threshold value from Orange to Red
 
-    unsigned int threshold_DB;
-    unsigned int threshold_QB;
+    unsigned int threshold_DB;  //Threshold value to determine if Buzzer beeps 2 times
+    unsigned int threshold_QB;  //Threshold value to determine if Buzzer beeps 4 times
 
-    char *textDisplay = malloc(sizeof(char));
+    char *textDisplay = malloc(sizeof(char) * 6); //Only 6 characters can show up on the LCD Display at a time
 
     __enable_interrupt();
 
@@ -35,31 +35,36 @@ int main(void) {
 
 void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned int *threshold_OR, unsigned int *threshold_DB, unsigned int *threshold_QB, char *textDisplay)
 {
+    ///* Let's the user know that Bike Sensor is in SETUP MODE
     Display_Text("SETUP");
     __delay_cycles(800000);
     Display_Text("MODE");
     __delay_cycles(800000);
     clearLCD();
+    //*/
 
-    char buttonState1 = 0; //Current button press state (to allow edge detection)
-    char buttonState2 = 0; //Current button press state (to allow edge detection)
-    unsigned int capture = 0;
+    char buttonState1 = 0;  //Current button press state (to allow edge detection)
+    char buttonState2 = 0;  //Current button press state (to allow edge detection)
+    unsigned int capture = 0;   //Holds current sensor reading (used by both front and back sensors)
 
-    int setup = 5;
+    int setup = 5;  //The user needs to set up 5 values for their bike sensor
     while (setup > 0)
     {
-        Get_Sensor_Data(&capture, textDisplay, setup > 2 ? FRONT_SENSOR : BACK_SENSOR);
+        Get_Sensor_Data(&capture, textDisplay, setup > 2 ? FRONT_SENSOR : BACK_SENSOR); //continuously capture new sensor readings
         //Buttons SW1 and SW2 are active low (1 until pressed, then 0)
+
+        //Button SW1 Sets the threshold values
         if ((GPIO_getInputPinValue(SW1_PORT, SW1_PIN) == 1) & (buttonState1 == 0)) //Look for rising edge
         {
-            buttonState1 = 1;                //Capture new button state
+            buttonState1 = 1;   //Capture new button state
         }
         if ((GPIO_getInputPinValue(SW1_PORT, SW1_PIN) == 0) & (buttonState1 == 1)) //Look for falling edge
         {
             switch(setup)
             {
                 case 5:
-                    *threshold_GY = capture; //arbitrary number - set to read sensor value
+                    *threshold_GY = capture;
+                    setup--;
                     Display_Text("GY SET");
                     __delay_cycles(800000);
                     Convert_To_String(*threshold_GY, textDisplay);
@@ -68,7 +73,8 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
                     clearLCD();
                     break;
                 case 4:
-                    *threshold_YO = capture; //arbitrary number - set to read sensor value
+                    *threshold_YO = capture;
+                    setup--;
                     Display_Text("YO SET");
                     __delay_cycles(800000);
                     Convert_To_String(*threshold_YO, textDisplay);
@@ -77,7 +83,8 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
                     clearLCD();
                     break;
                 case 3:
-                    *threshold_OR = capture; //arbitrary number - set to read sensor value
+                    *threshold_OR = capture;
+                    setup--;
                     Display_Text("OR SET");
                     __delay_cycles(800000);
                     Convert_To_String(*threshold_OR, textDisplay);
@@ -86,7 +93,8 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
                     clearLCD();
                     break;
                 case 2:
-                    *threshold_DB = capture; //arbitrary number - set to read sensor value
+                    *threshold_DB = capture;
+                    setup--;
                     Display_Text("DB SET");
                     __delay_cycles(800000);
                     Convert_To_String(*threshold_DB, textDisplay);
@@ -95,7 +103,8 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
                     clearLCD();
                     break;
                 case 1:
-                    *threshold_QB = capture; //arbitrary number - set to read sensor value
+                    *threshold_QB = capture;
+                    setup--;
                     Display_Text("QB SET");
                     __delay_cycles(800000);
                     Convert_To_String(*threshold_QB, textDisplay);
@@ -106,13 +115,13 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
                 default:
                     break;
             }
-            setup--;
-            buttonState1 = 0;                            //Capture new button state
+            buttonState1 = 0;   //Capture new button state
         }
 
+        //Button SW2 Indicates to the user what threshold value they are currently setting
         if ((GPIO_getInputPinValue(SW2_PORT, SW2_PIN) == 1) & (buttonState2 == 0)) //Look for rising edge
         {
-            buttonState2 = 1;                //Capture new button state
+            buttonState2 = 1;   //Capture new button state
         }
         if ((GPIO_getInputPinValue(SW2_PORT, SW2_PIN) == 0) & (buttonState2 == 1)) //Look for falling edge
         {
@@ -160,7 +169,7 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
                 default:
                     break;
             }
-            buttonState2 = 0;                            //Capture new button state
+            buttonState2 = 0;   //Capture new button state
         }
     }
 }
@@ -168,12 +177,15 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
 void User_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned int *threshold_OR, unsigned int *threshold_DB, unsigned int *threshold_QB, char *textDisplay)
 {
     unsigned int capture = 0;
-    // Enable User Mode until board is reset
+    //Enable User Mode until board is reset
     while (1)
     {
+        //Since we are using capture for both front and back sensors, we need to reset the capture value
         capture = 0;
 
+        //Busy wait until we get a valid reading from the front sensor
         while (capture == 0) { Get_Sensor_Data(&capture, textDisplay, FRONT_SENSOR); }
+        //Sequential logic to see what LED the sensor should display
         if (capture > *threshold_GY)
         {
             GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN3);
@@ -203,8 +215,10 @@ void User_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned 
             GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN5);
         }
 
+        //Reset capture
         capture = 0;
 
+        //Enter another Busy Wait for a reading from the back sensor
         while (capture == 0) { Get_Sensor_Data(&capture, textDisplay, BACK_SENSOR); }
         if ((capture < *threshold_DB) && (capture > *threshold_QB))
         {
