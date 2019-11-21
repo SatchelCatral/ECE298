@@ -22,7 +22,7 @@ int main(void) {
     unsigned int threshold_DB;  //Threshold value to determine if Buzzer beeps 2 times
     unsigned int threshold_QB;  //Threshold value to determine if Buzzer beeps 4 times
 
-    char *textDisplay = malloc(sizeof(char) * 6); //Only 6 characters can show up on the LCD Display at a time
+    char *textDisplay = malloc(6 * sizeof(char)); //Only 6 characters can show up on the LCD Display at a time
 
     __enable_interrupt();
 
@@ -50,7 +50,7 @@ void Setup_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned
     int setup = 5;  //The user needs to set up 5 values for their bike sensor
     while (setup > 0)
     {
-        Get_Sensor_Data(&capture, textDisplay, setup > 2 ? FRONT_SENSOR : BACK_SENSOR); //continuously capture new sensor readings
+        Get_Sensor_Data(&capture, textDisplay, setup > 2 ? BACK_SENSOR : FRONT_SENSOR); //continuously capture new sensor readings
         //Buttons SW1 and SW2 are active low (1 until pressed, then 0)
 
         //Button SW1 Sets the threshold values
@@ -205,7 +205,7 @@ void User_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned 
         capture = 0;
 
         //Busy wait until we get a valid reading from the front sensor
-        while (capture == 0) { Get_Sensor_Data(&capture, textDisplay, FRONT_SENSOR); }
+        Get_Sensor_Data(&capture, textDisplay, BACK_SENSOR);
         //Sequential logic to see what LED the sensor should display
         if (capture > *threshold_GY)
         {
@@ -240,7 +240,7 @@ void User_Mode(unsigned int *threshold_GY, unsigned int *threshold_YO, unsigned 
         capture = 0;
 
         //Enter another Busy Wait for a reading from the back sensor
-        while (capture == 0) { Get_Sensor_Data(&capture, textDisplay, BACK_SENSOR); }
+        Get_Sensor_Data(&capture, textDisplay, FRONT_SENSOR);
         if ((capture < *threshold_DB) && (capture > *threshold_QB))
         {
             Buzzer(2);
@@ -272,14 +272,32 @@ void Display_Text(char *msg)
 
 void Get_Sensor_Data(unsigned int *capture, char *dest, int sensor)
 {
+    unsigned int time_a = Read_Sensor(sensor);
+    while (time_a == 0) { time_a = Read_Sensor(sensor); }
+    unsigned int time_b = Read_Sensor(sensor);
+    while (time_b == 0) { time_b = Read_Sensor(sensor); }
+    unsigned int time_c = Read_Sensor(sensor);
+    while (time_c == 0) { time_c = Read_Sensor(sensor); }
+
+    unsigned int time_avg = (time_a / 6) + ((time_b * 2) / 3) + (time_c / 6);
+
+    Convert_To_String(time_avg, dest);
+
+    Display_Text(dest);
+    //__delay_cycles(500000);
+    __delay_cycles(250000);
+
+    *capture = time_avg;
+}
+
+unsigned int Read_Sensor(int sensor)
+{
     GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN5);
     __delay_cycles(10);
     GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN5);
     __delay_cycles(20);
     GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN5);
-//    test out if trigger works
 
-    // Insert Code Here
     unsigned int time = 0;
     unsigned int tmp = GPIO_getInputPinValue(sensor == FRONT_SENSOR ? GPIO_PORT_P1 : GPIO_PORT_P2, GPIO_PIN7);
 
@@ -302,14 +320,8 @@ void Get_Sensor_Data(unsigned int *capture, char *dest, int sensor)
         }
         Timer_A_stop(TIMER_A1_BASE);
         time = Timer_A_getCounterValue(TIMER_A1_BASE);
-
-        Convert_To_String(time, dest);
-
-        Display_Text(dest);
-        __delay_cycles(500000);
     }
-
-    *capture = time;
+    return time;
 }
 
 // USE PWM IN THE FUTURE
@@ -322,9 +334,11 @@ void Buzzer(int beeps)
         for (j = 0; j < 1000; j++)
         {
             GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN2);
-            __delay_cycles(10);
+            if (beeps == 2) { __delay_cycles(10); }
+            else { __delay_cycles(5); }
             GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN2);
-            __delay_cycles(10);
+            if (beeps == 2) { __delay_cycles(10); }
+            else { __delay_cycles(5); }
         }
         __delay_cycles(150000);
     }
@@ -332,6 +346,7 @@ void Buzzer(int beeps)
 
 void Convert_To_String(unsigned int src, char *dest)
 {
+    memset(dest, 0, 6);
     sprintf(dest, "%d", src);
 }
 

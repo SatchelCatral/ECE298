@@ -39,6 +39,7 @@ void Display_Text(char *);
 void Get_Sensor_Data(unsigned int *, char *, int);
 void Buzzer(int);
 void Convert_To_String(unsigned int, char *);
+unsigned int Read_Sensor(int);
 
 Timer_A_outputPWMParam param; //Timer configuration data structure for PWM
 
